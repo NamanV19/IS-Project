@@ -1,7 +1,9 @@
 from collections import namedtuple
 import matplotlib.pyplot as plt
 import pandas as pd
+import numpy as np
 import csv
+import statsmodels.api as sm
 
 variables = ["date", "meantempm", "meandewptm", "meanpressurem", "maxhumidity", "minhumidity", "maxtempm",
             "mintempm", "maxdewptm", "mindewptm", "maxpressurem", "minpressurem", "precipm"]
@@ -87,9 +89,46 @@ plt.xlabel('minpressurem_1')
 plt.show()
 
 # If Needed
-# for precip_col in ['precipm_1', 'precipm_2', 'precipm_3']:
-#     # create a boolean array of values representing nans
-#     missing_vals = pd.isnull(df[precip_col])
-#     df[precip_col][missing_vals] = 0
-#
-# df = df.dropna()
+for precip_col in ['precipm_1', 'precipm_2', 'precipm_3']:
+    # create a boolean array of values representing nans
+    missing_vals = pd.isnull(df[precip_col])
+    df[precip_col][missing_vals] = 0
+
+df = df.dropna()
+
+df.corr()[['meantempm']].sort_values('meantempm')
+print(df.corr())
+predictors = ['meantempm_1',  'meantempm_2',  'meantempm_3',
+              'mintempm_1',   'mintempm_2',   'mintempm_3',
+              'meandewptm_1', 'meandewptm_2', 'meandewptm_3',
+              'maxdewptm_1',  'maxdewptm_2',  'maxdewptm_3',
+              'mindewptm_1',  'mindewptm_2',  'mindewptm_3',
+              'maxtempm_1',   'maxtempm_2',   'maxtempm_3']
+df2 = df[['meantempm'] + predictors]
+
+#%matplotlib inline
+
+# manually set the parameters of the figure to and appropriate size
+plt.rcParams['figure.figsize'] = [16, 22]
+
+# call subplots specifying the grid structure we desire and that
+# the y axes should be shared
+fig, axes = plt.subplots(nrows=6, ncols=3, sharey=True)
+
+# Since it would be nice to loop through the features in to build this plot
+# let us rearrange our data into a 2D array of 6 rows and 3 columns
+arr = np.array(predictors).reshape(6, 3)
+
+# use enumerate to loop over the arr 2D array of rows and columns
+# and create scatter plots of each meantempm vs each feature
+for row, col_arr in enumerate(arr):
+    for col, feature in enumerate(col_arr):
+        axes[row, col].scatter(df2[feature], df2['meantempm'])
+        if col == 0:
+            axes[row, col].set(xlabel=feature, ylabel='meantempm')
+        else:
+            axes[row, col].set(xlabel=feature)
+plt.show()
+
+# import the relevant module
+
