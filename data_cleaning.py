@@ -99,11 +99,10 @@ df = df.dropna()
 df.corr()[['meantempm']].sort_values('meantempm')
 print(df.corr())
 predictors = ['meantempm_1',  'meantempm_2',  'meantempm_3',
-              'mintempm_1',   'mintempm_2',   'mintempm_3',
-              'meandewptm_1', 'meandewptm_2', 'meandewptm_3',
-              'maxdewptm_1',  'maxdewptm_2',  'maxdewptm_3',
-              'mindewptm_1',  'mindewptm_2',  'mindewptm_3',
-              'maxtempm_1',   'maxtempm_2',   'maxtempm_3']
+
+              'meandewptm_1', 'meandewptm_3',
+
+              ]
 df2 = df[['meantempm'] + predictors]
 
 #%matplotlib inline
@@ -117,7 +116,7 @@ fig, axes = plt.subplots(nrows=6, ncols=3, sharey=True)
 
 # Since it would be nice to loop through the features in to build this plot
 # let us rearrange our data into a 2D array of 6 rows and 3 columns
-arr = np.array(predictors).reshape(6, 3)
+arr = np.array(predictors).reshape(5, 1)
 
 # use enumerate to loop over the arr 2D array of rows and columns
 # and create scatter plots of each meantempm vs each feature
