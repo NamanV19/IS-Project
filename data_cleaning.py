@@ -4,6 +4,8 @@ import pandas as pd
 import numpy as np
 import csv
 import statsmodels.api as sm
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
 
 variables = ["date", "meantempm", "meandewptm", "meanpressurem", "maxhumidity", "minhumidity", "maxtempm",
             "mintempm", "maxdewptm", "mindewptm", "maxpressurem", "minpressurem", "precipm"]
@@ -12,7 +14,7 @@ records = []
 
 AnnualWeatherReport = namedtuple("AnnualWeatherReport", variables)
 
-with open("raw_data.txt", "r") as raw_data:
+with open("ottawa_raw_data.txt", "r") as raw_data:
     r = csv.reader(raw_data, delimiter=",")
     next(r)
     for row in r:
@@ -70,23 +72,23 @@ variables_maintained = [col for col in df.columns if col not in variables_remove
 df = df[variables_maintained]
 
 df = df.apply(pd.to_numeric, errors='coerce')
-print(df.info())
+# print(df.info())
 
 spread = df.describe().T
 IQR = spread['75%'] - spread['25%']
 spread['outliers'] = (spread['min']<(spread['25%']-(3*IQR)))|(spread['max'] > (spread['75%']+3*IQR))
-print(spread.loc[spread.outliers])
+# print(spread.loc[spread.outliers])
 
 plt.rcParams['figure.figsize'] = [14, 8]
 df.maxhumidity_1.hist()
 plt.title('Distribution of maxhumidity_1')
 plt.xlabel('maxhumidity_1')
-plt.show()
+# plt.show()
 
 df.minpressurem_1.hist()
 plt.title('Distribution of minpressurem_1')
 plt.xlabel('minpressurem_1')
-plt.show()
+# plt.show()
 
 # If Needed
 for precip_col in ['precipm_1', 'precipm_2', 'precipm_3']:
@@ -97,29 +99,23 @@ for precip_col in ['precipm_1', 'precipm_2', 'precipm_3']:
 df = df.dropna()
 
 df.corr()[['meantempm']].sort_values('meantempm')
-print(df.corr())
-predictors = ['meantempm_1',  'meantempm_2',  'meantempm_3',
-
-              'meandewptm_1', 'meandewptm_3',
-
+# print(df.corr())
+predictors = ['meantempm_1', 'meantempm_2', 'meantempm_3',
+              'meandewptm_1', 'meandewptm_2', 'meandewptm_3',
+              'meanpressurem_1', 'meanpressurem_2', 'meanpressurem_3',
+              'maxhumidity_1', 'minhumidity_1', 'maxtempm_1'
               ]
 df2 = df[['meantempm'] + predictors]
 
 #%matplotlib inline
 
 # manually set the parameters of the figure to and appropriate size
-plt.rcParams['figure.figsize'] = [16, 22]
+plt.rcParams['figure.figsize'] = [11, 15]
 
-# call subplots specifying the grid structure we desire and that
-# the y axes should be shared
-fig, axes = plt.subplots(nrows=6, ncols=3, sharey=True)
+fig, axes = plt.subplots(nrows=4, ncols=3, sharey=True)
 
-# Since it would be nice to loop through the features in to build this plot
-# let us rearrange our data into a 2D array of 6 rows and 3 columns
-arr = np.array(predictors).reshape(5, 1)
+arr = np.array(predictors).reshape(4, 3)
 
-# use enumerate to loop over the arr 2D array of rows and columns
-# and create scatter plots of each meantempm vs each feature
 for row, col_arr in enumerate(arr):
     for col, feature in enumerate(col_arr):
         axes[row, col].scatter(df2[feature], df2['meantempm'])
@@ -127,7 +123,55 @@ for row, col_arr in enumerate(arr):
             axes[row, col].set(xlabel=feature, ylabel='meantempm')
         else:
             axes[row, col].set(xlabel=feature)
-plt.show()
+# To show the graph
+# plt.show()
 
-# import the relevant module
+x = df2[predictors]
+y = df2['meantempm']
 
+x = sm.add_constant(x)
+# print(x.iloc[:5, :5])
+
+alpha = 0.05
+model = sm.OLS(y, x).fit()
+# print(model.summary())
+
+x = x.drop('meanpressurem_1', axis=1)
+
+model = sm.OLS(y, x).fit()
+# print(model.summary())
+
+x = x.drop('meandewptm_2', axis=1)
+model = sm.OLS(y, x).fit()
+# print(model.summary())
+
+x = x.drop('meantempm_3', axis=1)
+model = sm.OLS(y, x).fit()
+# print(model.summary())
+
+x = x.drop('meantempm_1', axis=1)
+model = sm.OLS(y, x).fit()
+# print(model.summary())
+
+x = x.drop('maxhumidity_1', axis=1)
+model = sm.OLS(y, x).fit()
+# print(model.summary())
+
+x = x.drop('meantempm_2', axis=1)
+model = sm.OLS(y, x).fit()
+# print(model.summary())
+
+x = x.drop('const', axis=1)
+
+X_train, X_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=12)
+
+regressor = LinearRegression()
+
+regressor.fit(X_train, y_train)
+
+prediction = regressor.predict(X_test)
+
+from sklearn.metrics import mean_absolute_error, median_absolute_error
+print("The Explained Variance: %.2f" % regressor.score(X_test, y_test))
+print("The Mean Absolute Error: %.2f degrees celsius" % mean_absolute_error(y_test, prediction))
+print("The Median Absolute Error: %.2f degrees celsius" % median_absolute_error(y_test, prediction))
