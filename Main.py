@@ -22,20 +22,22 @@ class LinearRegression():
         print(self.df.corr())
 
     def get_suitable_predictors(self):
-        corr_values = self.df.corr().sort_values('meantempm').abs()
+        corr_values = self.df.corr()[['meantempm']]
         corr_values_processed = corr_values.unstack()
-        for i in range(len(corr_values_processed)):
-            if corr_values_processed[i] > self.correlation_value:
-                self.predictors.append(corr_values_processed[1])
-        return self.predictors
-        # for key, value in corr_values_processed.items():
-        #     if value>=self.correlation_value:
-        #         self.predictors.append(key[1])
-        return self.predictors
+        var_names = []
+        count = 0
+
+        for key, value in corr_values_processed.items():
+            var_names.append(key[1])
+        for key, value in corr_values_processed.items():
+            if value > 0.6:
+                self.predictors.append(var_names[count])
+                count = count + 1
         if 'maxtempm' in self.predictors:
             self.predictors.remove('maxtempm')
         if 'mintempm' in self.predictors:
             self.predictors.remove('mintempm')
+        return len(self.predictors)
         df2 = self.df[['meantempm'] + self.predictors]
 
         if len(self.predictors) > 3:
